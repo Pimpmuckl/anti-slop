@@ -1,0 +1,11 @@
+[package]
+name = "cargo-anti-slop"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+license = "MIT"
+description = "A vendorable, compiler-backed anti-slop policy for Rust"
+
+# Remain independently buildable when vendored inside another Cargo workspace.
+[workspace]

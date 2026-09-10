@@ -1,0 +1,12 @@
+# OPTIONAL application policy, not a universal Rust correctness rule.
+# Merge these entries into the EXISTING disallowed-methods list in clippy.toml.
+# Do not set CLIPPY_CONF_DIR to this directory in an existing project: that can
+# hide its current Clippy configuration. The test harness uses isolated fixtures.
+#
+# Clippy resolves definitions, so aliases/UFCS are covered; similarly named
+# methods on Option, user types, or unrelated traits are not forbidden.
+disallowed-methods = [
+  { path = "std::result::Result::ok", reason = "anti-slop: converting an error to absence loses its cause; handle it explicitly or justify this boundary with a local lint expectation" },
+  { path = "std::result::Result::unwrap_or", reason = "anti-slop: this fallback discards the error; handle the expected failure explicitly or justify replacing it with a default" },
+  { path = "std::result::Result::unwrap_or_default", reason = "anti-slop: invalid input is not necessarily absent input; propagate, handle, or explicitly justify replacing the error with a default" },
+]
