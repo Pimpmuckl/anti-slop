@@ -76,8 +76,16 @@ fn discarded_result_and_future_are_detected() {
     );
     let output = fixture.check();
     assert!(!output.status.success(), "{}", text(&output));
-    assert!(text(&output).contains("clippy::let_underscore_must_use"), "{}", text(&output));
-    assert!(text(&output).contains("clippy::let_underscore_future"), "{}", text(&output));
+    assert!(
+        text(&output).contains("clippy::let_underscore_must_use"),
+        "{}",
+        text(&output)
+    );
+    assert!(
+        text(&output).contains("clippy::let_underscore_future"),
+        "{}",
+        text(&output)
+    );
 }
 
 #[test]
@@ -94,8 +102,16 @@ fn result_aliases_and_ufcs_are_resolved_by_the_compiler() {
     );
     let output = fixture.check();
     assert!(!output.status.success(), "{}", text(&output));
-    assert!(text(&output).contains("clippy::disallowed_methods"), "{}", text(&output));
-    assert!(text(&output).contains("unwrap_or_default"), "{}", text(&output));
+    assert!(
+        text(&output).contains("clippy::disallowed_methods"),
+        "{}",
+        text(&output)
+    );
+    assert!(
+        text(&output).contains("unwrap_or_default"),
+        "{}",
+        text(&output)
+    );
     assert!(text(&output).contains("Result::ok"), "{}", text(&output));
 }
 
@@ -158,7 +174,11 @@ fn reasoned_expectation_is_allowed_but_stale_expectation_fails() {
     );
     let output = stale.check();
     assert!(!output.status.success(), "{}", text(&output));
-    assert!(text(&output).contains("unfulfilled_lint_expectations"), "{}", text(&output));
+    assert!(
+        text(&output).contains("unfulfilled_lint_expectations"),
+        "{}",
+        text(&output)
+    );
 }
 
 #[test]
@@ -166,7 +186,7 @@ fn undocumented_unsafe_is_rejected() {
     let fixture = Fixture::new(
         r#"
         pub fn read() -> u32 {
-            let value = 42;
+            let value = 42_u32;
             let pointer = &value as *const u32;
             unsafe { *pointer }
         }
@@ -175,5 +195,9 @@ fn undocumented_unsafe_is_rejected() {
     );
     let output = fixture.check();
     assert!(!output.status.success(), "{}", text(&output));
-    assert!(text(&output).contains("clippy::undocumented_unsafe_blocks"), "{}", text(&output));
+    assert!(
+        text(&output).contains("clippy::undocumented_unsafe_blocks"),
+        "{}",
+        text(&output)
+    );
 }

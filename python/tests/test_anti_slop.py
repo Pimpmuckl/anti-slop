@@ -1,4 +1,5 @@
 """Behavioral and negative fixtures for the vendored checker; no application imports."""
+
 from __future__ import annotations
 
 import contextlib
@@ -18,7 +19,14 @@ from anti_slop import DEFAULT_RULES, check_source, main  # noqa: E402
 
 
 def codes(source: str, *, selected=DEFAULT_RULES, modules=()) -> list[str]:
-    return [item.code for item in check_source(textwrap.dedent(source), selected=frozenset(selected), internal_modules=modules)]
+    return [
+        item.code
+        for item in check_source(
+            textwrap.dedent(source),
+            selected=frozenset(selected),
+            internal_modules=modules,
+        )
+    ]
 
 
 class CastTests(unittest.TestCase):
@@ -35,12 +43,15 @@ class CastTests(unittest.TestCase):
                 self.assertEqual(codes(source), ["ASPY001", "ASPY003"])
 
     def test_cast_comment_is_not_json_validation(self):
-        self.assertEqual(codes('''
+        self.assertEqual(
+            codes("""
             from typing import cast
             import json
             # SAFETY: We expect this to be a user.
             user = cast(User, json.loads(raw))
-        '''), ["ASPY001"])
+        """),
+            ["ASPY001"],
+        )
 
     def test_no_runtime_execution(self):
         source = "raise RuntimeError('must not execute')\nimport missing_application\n"
@@ -70,18 +81,24 @@ class CastTests(unittest.TestCase):
                 self.assertEqual(codes(source), ["ASPY002", "ASPY003"])
 
     def test_cast_widening_and_chains(self):
-        self.assertEqual(codes('''
+        self.assertEqual(
+            codes("""
             from typing import Any, cast
             def f(user: User):
                 # SAFETY: SDK annotation workaround.
                 erased = cast(Any, user)
                 return cast(User, erased)
-        '''), ["ASPY002", "ASPY003"])
-        self.assertEqual(codes('''
+        """),
+            ["ASPY002", "ASPY003"],
+        )
+        self.assertEqual(
+            codes("""
             from typing import Any, cast
             # SAFETY: explain both casts without changing the structural policy.
             user = cast(User, cast(Any, value))
-        '''), ["ASPY002"])
+        """),
+            ["ASPY002"],
+        )
 
     def test_no_type_flow_across_reassignment_branches_or_function_boundaries(self):
         cases = [
@@ -116,24 +133,36 @@ class CastTests(unittest.TestCase):
                 self.assertEqual(codes(source), [])
 
     def test_methods_skip_the_class_namespace(self):
-        self.assertEqual(codes('''
+        self.assertEqual(
+            codes("""
             from typing import cast
             class Container:
                 cast = custom
                 def read(self):
                     return cast(User, self.data)
-        '''), ["ASPY003"])
-        self.assertEqual(codes('''
+        """),
+            ["ASPY003"],
+        )
+        self.assertEqual(
+            codes("""
             class Container:
                 from typing import cast
                 def read(self):
                     return cast(User, self.data)
-        '''), [])
+        """),
+            [],
+        )
 
     def test_aliases_cycles_and_comprehension_outer_iterable(self):
-        self.assertEqual(codes("from typing import cast\nnarrow = cast\nx = narrow(User, raw)"), ["ASPY003"])
+        self.assertEqual(
+            codes("from typing import cast\nnarrow = cast\nx = narrow(User, raw)"),
+            ["ASPY003"],
+        )
         self.assertEqual(codes("a = b\nb = a\nx = a(User, raw)"), [])
-        self.assertEqual(codes("from typing import cast\nx = [cast for cast in cast(list, values)]"), ["ASPY003"])
+        self.assertEqual(
+            codes("from typing import cast\nx = [cast for cast in cast(list, values)]"),
+            ["ASPY003"],
+        )
 
     def test_comments_are_tokens_and_need_a_nonempty_reason(self):
         cases = [
@@ -141,22 +170,33 @@ class CastTests(unittest.TestCase):
             ("x = cast(User, raw)  # SAFETY: SDK stub is too broad.", []),
             ("# SAFETY:\nx = cast(User, raw)", ["ASPY003"]),
             ("text = '# SAFETY: not a comment'\nx = cast(User, raw)", ["ASPY003"]),
-            ("# SAFETY: attaches to something else.\ny = 0\nx = cast(User, raw)", ["ASPY003"]),
-            ("# SAFETY: separated by a blank line.\n\nx = cast(User, raw)", ["ASPY003"]),
+            (
+                "# SAFETY: attaches to something else.\ny = 0\nx = cast(User, raw)",
+                ["ASPY003"],
+            ),
+            (
+                "# SAFETY: separated by a blank line.\n\nx = cast(User, raw)",
+                ["ASPY003"],
+            ),
         ]
         for source, expected in cases:
             with self.subTest(source=source):
                 self.assertEqual(codes("from typing import cast\n" + source), expected)
 
     def test_multiline_statement_comment_and_unicode_columns(self):
-        self.assertEqual(codes('''
+        self.assertEqual(
+            codes("""
             from typing import cast
             # SAFETY: SDK result has an independently validated contract.
             result = (
                 cast(User, raw)
             )
-        '''), [])
-        diagnostic = check_source("from typing import cast\né = '☃'; x = cast(User, raw)")[0]
+        """),
+            [],
+        )
+        diagnostic = check_source(
+            "from typing import cast\né = '☃'; x = cast(User, raw)"
+        )[0]
         self.assertEqual(diagnostic.column, 14)
 
 
@@ -194,7 +234,9 @@ class PolicyTests(unittest.TestCase):
             "from unittest.mock import patch\nimport owned.store as store\npatch.object(store, 'read')",
         ]:
             with self.subTest(source=source):
-                self.assertEqual(codes(source, selected=selected, modules=("owned",)), ["ASPY101"])
+                self.assertEqual(
+                    codes(source, selected=selected, modules=("owned",)), ["ASPY101"]
+                )
         for source in [
             "from unittest.mock import patch\npatch('owned_elsewhere.store.read')",
             "from unittest.mock import patch\npatch('external.store.read')",
@@ -204,24 +246,44 @@ class PolicyTests(unittest.TestCase):
             "from unittest.mock import patch\ndef f(patch):\n    patch('owned.store.read')",
         ]:
             with self.subTest(source=source):
-                self.assertEqual(codes(source, selected=selected, modules=("owned",)), [])
-        self.assertEqual(codes("from unittest.mock import patch\npatch('owned.store.read')"), [])
+                self.assertEqual(
+                    codes(source, selected=selected, modules=("owned",)), []
+                )
+        self.assertEqual(
+            codes("from unittest.mock import patch\npatch('owned.store.read')"), []
+        )
 
     def test_reasoned_suppressions_and_staleness(self):
-        self.assertEqual(codes('''
+        self.assertEqual(
+            codes("""
             from typing import cast
             value = cast(User, raw)  # anti-slop: ignore[ASPY003] -- stub workaround reviewed here
-        '''), [])
-        self.assertEqual(codes('''
+        """),
+            [],
+        )
+        self.assertEqual(
+            codes("""
             from typing import cast
             # anti-slop: ignore[ASPY003] -- checked by the SDK
             value = (
                 cast(User, raw)
             )
-        '''), [])
-        self.assertEqual(codes("x = 1  # anti-slop: ignore[ASPY003] -- no cast anymore"), ["ASPY901"])
-        self.assertEqual(codes("# anti-slop: ignore[ASPY003] -- other profile\nx = 1", selected={"ASPY001"}), [])
-        self.assertEqual(codes("x = 1  # anti-slop: ignore[ASPY999] -- typo"), ["ASPY900"])
+        """),
+            [],
+        )
+        self.assertEqual(
+            codes("x = 1  # anti-slop: ignore[ASPY003] -- no cast anymore"), ["ASPY901"]
+        )
+        self.assertEqual(
+            codes(
+                "# anti-slop: ignore[ASPY003] -- other profile\nx = 1",
+                selected={"ASPY001"},
+            ),
+            [],
+        )
+        self.assertEqual(
+            codes("x = 1  # anti-slop: ignore[ASPY999] -- typo"), ["ASPY900"]
+        )
         self.assertEqual(codes("x = 1  # anti-slop: ignore[ASPY003] --"), ["ASPY900"])
         self.assertEqual(codes("# anti-slop: ignore\nx = 1"), ["ASPY900"])
         self.assertEqual(codes("text = '# anti-slop: ignore'"), [])
@@ -245,7 +307,9 @@ class CliTests(unittest.TestCase):
         return status, out.getvalue(), err.getvalue()
 
     def test_json_and_exit_codes(self):
-        Path("example.py").write_text("from typing import cast\nx = cast(User, raw)", encoding="utf-8")
+        Path("example.py").write_text(
+            "from typing import cast\nx = cast(User, raw)", encoding="utf-8"
+        )
         status, output, _ = self.run_cli("example.py", "--format", "json")
         self.assertEqual(status, 1)
         self.assertEqual(json.loads(output)[0]["code"], "ASPY003")
@@ -258,14 +322,21 @@ class CliTests(unittest.TestCase):
         self.assertEqual(self.run_cli("example.py", "--select", "ASPY999")[0], 2)
 
     def test_configuration_excludes_and_hidden_owned_source(self):
-        Path("pyproject.toml").write_text('[tool.anti-slop.python]\nexclude = ["generated/*"]\n', encoding="utf-8")
+        Path("pyproject.toml").write_text(
+            '[tool.anti-slop.python]\nexclude = ["generated/*"]\n', encoding="utf-8"
+        )
         for directory in ["generated", ".venv", ".owned"]:
             Path(directory).mkdir()
-            Path(directory, "bad.py").write_text("from typing import cast\nx = cast(User, raw)", encoding="utf-8")
+            Path(directory, "bad.py").write_text(
+                "from typing import cast\nx = cast(User, raw)", encoding="utf-8"
+            )
         status, output, _ = self.run_cli(".", "--format", "json")
         self.assertEqual(status, 1)
         self.assertEqual(len(json.loads(output)), 1)
-        self.assertTrue(json.loads(output)[0]["path"].endswith(".owned/bad.py") or json.loads(output)[0]["path"].endswith(".owned\\bad.py"))
+        self.assertTrue(
+            json.loads(output)[0]["path"].endswith(".owned/bad.py")
+            or json.loads(output)[0]["path"].endswith(".owned\\bad.py")
+        )
 
     def test_invalid_config_and_explicit_policy_requirements(self):
         Path("example.py").write_text("x = 1", encoding="utf-8")
@@ -275,14 +346,20 @@ class CliTests(unittest.TestCase):
             '[tool.anti-slop.python]\nextend-select = ["ASPY101"]',
             '[tool.anti-slop.python]\ninternal-modules = [""]',
             '[tool.anti-slop.python]\nignore = ["ASPY999"]',
-            '[tool]\nanti-slop = false',
-            '[tool.anti-slop]\npython = false',
+            "[tool]\nanti-slop = false",
+            "[tool.anti-slop]\npython = false",
         ]:
             with self.subTest(content=content):
                 Path("pyproject.toml").write_text(content, encoding="utf-8")
                 self.assertEqual(self.run_cli("example.py")[0], 2)
-        Path("pyproject.toml").write_text('[tool.anti-slop.python]\nextend-select = ["ASPY101"]\ninternal-modules = ["owned"]', encoding="utf-8")
-        Path("example.py").write_text("from unittest.mock import patch\npatch('owned.store.read')", encoding="utf-8")
+        Path("pyproject.toml").write_text(
+            '[tool.anti-slop.python]\nextend-select = ["ASPY101"]\ninternal-modules = ["owned"]',
+            encoding="utf-8",
+        )
+        Path("example.py").write_text(
+            "from unittest.mock import patch\npatch('owned.store.read')",
+            encoding="utf-8",
+        )
         self.assertEqual(self.run_cli("example.py")[0], 1)
 
     def test_duplicate_files_source_encoding_and_subprocess(self):
@@ -290,7 +367,12 @@ class CliTests(unittest.TestCase):
         status, output, _ = self.run_cli(".", "example.py")
         self.assertEqual(status, 0)
         self.assertIn("1 Python file", output)
-        result = subprocess.run([sys.executable, str(ROOT / "anti_slop.py"), "example.py"], capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "anti_slop.py"), "example.py"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symlinks are unavailable")
