@@ -46,6 +46,7 @@ jobs:
               source = source.replace(old, new)
           p.write_text(source)
           PY
+          ruff check --select RUF100 --fix python/tests/test_regressions.py
           ruff format python
           node scripts/sync-native-assets.mjs
       - name: Validate fixed source and shipped copy
