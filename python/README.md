@@ -66,17 +66,18 @@ Normal `isinstance`, protocols, typed mappings, `object`, `Any`, `**kwargs`, laz
 user = cast(User, sdk_result)
 ```
 
-Put the comment on the opening line of the cast or containing statement, or an
-immediately preceding comment block. Blank lines or another statement break
-attachment. A comment does not silence ASPY001/002. Never manufacture meaningless
-justifications as fixes.
+Put the comment on the opening or closing line of the cast or containing statement,
+or in an immediately preceding comment block. Blank lines or another statement
+break attachment. A comment does not silence ASPY001/002. Never manufacture
+meaningless justifications as fixes.
 
-An intentional exception needs exact rule codes and a reason, on the opening line
-of the cast or containing statement, or the immediately preceding line:
+An intentional exception needs exact rule codes and a reason, on the opening or
+closing line of the cast or containing statement, or immediately before it:
 
 ```python
-# anti-slop: ignore[ASPY003] -- contract documented in the SDK issue
-user = cast(User, sdk_result)
+user = cast(
+    User, sdk_result
+)  # anti-slop: ignore[ASPY003] -- contract documented in the SDK issue
 ```
 
 Multiple codes are comma-separated. Deselected rules are not counted as stale.

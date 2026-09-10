@@ -278,10 +278,10 @@ class Checker(ast.NodeVisitor):
 
     def anchors(self, node: ast.expr | ast.stmt) -> set[int]:
         statement = self.statement(node)
-        return {
-            node.lineno,
-            statement.lineno if isinstance(statement, ast.stmt) else node.lineno,
-        }
+        anchors = {node.lineno, node.end_lineno or node.lineno}
+        if isinstance(statement, ast.stmt):
+            anchors.update({statement.lineno, statement.end_lineno or statement.lineno})
+        return anchors
 
     def emit(self, node: ast.expr | ast.stmt, code: str, message: str) -> None:
         if code not in self.selected:
