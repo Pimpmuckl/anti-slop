@@ -1,0 +1,102 @@
+# Temporary execution environment for reviewed edits; never updates repository refs.
+# The resulting source tree is committed via the GitHub connector, then this file is removed.
+name: Validate CodeRabbit fixes
+on:
+  push:
+    branches: [feat/python-rust-anti-slop]
+    paths: [.github/workflows/recover-native.yml]
+permissions:
+  contents: write
+jobs:
+  validate:
+    if: github.repository == 'Pimpmuckl/anti-slop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - run: python -m pip install ruff==0.16.6 mypy==2.3.1
+      - name: Apply reviewed Python and documentation changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('python/anti_slop.py')
+          source = p.read_text()
+          assert source.startswith('#!/usr/bin/env python3\n')
+          source = source.removeprefix('#!/usr/bin/env python3\n')
+          changes = [
+              ('if not isinstance(value, list):\n        raise ValueError', 'if not isinstance(value, list):\n        raise TypeError'),
+              ('if not isinstance(value, dict):\n        raise ValueError', 'if not isinstance(value, dict):\n        raise TypeError'),
+              ('        if not isinstance(item, str) or not item.strip():\n            raise ValueError(f"{key} must be a list of nonempty strings")', '        if not isinstance(item, str):\n            raise TypeError(f"{key} must be a list of nonempty strings")\n        if not item.strip():\n            raise ValueError(f"{key} must be a list of nonempty strings")'),
+              ('    except (\n        OSError,\n        ValueError,', '    except (\n        OSError,\n        TypeError,\n        ValueError,'),
+          ]
+          for old, new in changes:
+              assert source.count(old) == 1, old
+              source = source.replace(old, new)
+          p.write_text(source)
+          p = Path('TYPESCRIPT.md')
+          source = p.read_text()
+          for old, new in [
+              ('https://skills.sh/b/dmmulroy/anti-slop', 'https://skills.sh/b/Pimpmuckl/anti-slop'),
+              ('https://skills.sh/dmmulroy/anti-slop', 'https://skills.sh/Pimpmuckl/anti-slop'),
+              ('npx skills add dmmulroy/anti-slop', 'npx skills add Pimpmuckl/anti-slop'),
+          ]:
+              assert old in source, old
+              source = source.replace(old, new)
+          p.write_text(source)
+          p = Path('skills/install-anti-slop/references/native.md')
+          source = p.read_text()
+          old = 'Existing paths are refused.'
+          new = 'Existing paths and symlinked destination ancestors are refused. Use a physical\ndestination path. This preflight assumes the worktree is not being maliciously\nmodified concurrently.'
+          assert source.count(old) == 1
+          p.write_text(source.replace(old, new))
+          p = Path('.github/workflows/native.yml')
+          source = p.read_text()
+          assert '\n  installer:\n' not in source
+          source += '\n  installer:\n    strategy:\n      fail-fast: false\n      matrix:\n        os: [windows-latest, macos-latest]\n    runs-on: ${{ matrix.os }}\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 24\n      - run: node scripts/sync-native-assets.mjs --check\n      - run: node --test scripts/install-native.test.mjs\n'
+          p.write_text(source)
+          PY
+          ruff check --extend-select I --fix python
+          ruff format python
+          cargo fmt --manifest-path rust/Cargo.toml
+          node scripts/sync-native-assets.mjs
+      - name: Validate canonical source and distribution
+        run: |
+          python -m unittest discover -s python/tests -v
+          python python/anti_slop.py python/anti_slop.py python/tests
+          ruff check --extend-select I,EXE001,TRY004 python/anti_slop.py
+          ruff check python
+          mypy --config-file python/mypy.ini python/anti_slop.py
+          cargo test --manifest-path rust/Cargo.toml --locked
+          cargo run --manifest-path rust/Cargo.toml -- --manifest-path rust/Cargo.toml --locked
+          node scripts/sync-native-assets.mjs --check
+          node --test scripts/install-native.test.mjs
+      - name: Store verified proposed tree without moving refs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const cp = require('node:child_process');
+            const paths = cp.execFileSync('git', ['ls-files', '-m', '-o', '--exclude-standard', '-z']).toString().split('\0').filter(Boolean);
+            const allowed = ['python/', 'rust/', 'skills/install-anti-slop/assets/anti-slop-python/', 'skills/install-anti-slop/assets/anti-slop-rust/'];
+            const exact = ['TYPESCRIPT.md', 'skills/install-anti-slop/references/native.md', '.github/workflows/native.yml'];
+            const tree = [];
+            for (const path of paths) {
+              if (!allowed.some(prefix => path.startsWith(prefix)) && !exact.includes(path)) throw new Error(`Unexpected changed path: ${path}`);
+              const {data} = await github.rest.git.createBlob({...context.repo, content: fs.readFileSync(path, 'utf8'), encoding: 'utf-8'});
+              tree.push({path, mode: '100644', type: 'blob', sha: data.sha});
+            }
+            const base = cp.execFileSync('git', ['rev-parse', 'HEAD^{tree}']).toString().trim();
+            const {data} = await github.rest.git.createTree({...context.repo, base_tree: base, tree});
+            core.info(`PROPOSED_TREE=${data.sha}`);
+            core.info(`PARENT_COMMIT=${context.sha}`);
+            core.info(`CHANGED_FILES=${JSON.stringify(paths)}`);

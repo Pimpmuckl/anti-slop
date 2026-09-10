@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { cpSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,11 +11,23 @@ if (!["python", "rust"].includes(language) || extra.length || destination?.start
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const source = join(root, "assets", `anti-slop-${language}`);
-const target = resolve(destination ?? `tools/anti-slop/${language}`);
+const target = resolve(process.cwd(), destination ?? `tools/anti-slop/${language}`);
 
 function inside(parent, child) {
   const path = relative(parent, child);
   return path === "" || (!isAbsolute(path) && path !== ".." && !path.startsWith(`..${sep}`));
+}
+
+function rejectSymlinkAncestors(path) {
+  let current = dirname(path);
+  while (true) {
+    if (lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) {
+      throw new Error(`Refusing symlinked destination ancestor ${current}; use a physical destination path.`);
+    }
+    const parent = dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
 }
 
 function hashes(directory) {
@@ -28,8 +40,12 @@ function hashes(directory) {
 }
 
 try {
+  // Check every existing parent before any mkdir/copy/provenance write. A missing
+  // immediate parent must not hide a symlink further up the destination path.
+  rejectSymlinkAncestors(target);
   if (lstatSync(target, { throwIfNoEntry: false })) throw new Error(`Refusing to overwrite ${target}; stage and review updates separately.`);
-  if (inside(source, target) || inside(target, source)) throw new Error("Source and destination must not contain each other.");
+  const physicalSource = realpathSync(source);
+  if (inside(physicalSource, target) || inside(target, physicalSource)) throw new Error("Source and destination must not contain each other.");
   const snapshot = hashes(source);
   mkdirSync(dirname(target), { recursive: true });
   cpSync(source, target, { recursive: true, force: false, errorOnExist: true });
