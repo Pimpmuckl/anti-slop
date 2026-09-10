@@ -1,19 +1,10 @@
-# Companion baseline. Merge/extend your current Ruff configuration; do not replace it.
-# Formatting belongs to Ruff format or Black, not the anti-slop checker.
+# Companion baseline: merge with existing settings; do not replace project policy.
+target-version = "py311"
+
 [lint]
+# Keep the conventional correctness baseline explicit across Ruff releases.
+select = ["E4", "E7", "E9", "F"]
 extend-select = [
-  "B006",    # Mutable argument defaults.
-  "B007",    # Unused loop variables.
-  "B009",    # Constant-name getattr without a default.
-  "B010",    # Constant-name setattr.
-  "B012",    # Control flow in finally can hide exceptions.
-  "B018",    # Useless expressions.
-  "B023",    # Late-bound loop closures.
-  "B904",    # Preserve exception chaining.
-  "BLE001",  # Broad exceptions need deliberate boundary handling.
-  "PGH003",  # A type ignore must identify the diagnostic.
-  "PGH004",  # A noqa must identify the diagnostic.
-  "RUF006",  # Keep a reference to background asyncio tasks.
-  "RUF017",  # Avoid quadratic list summation.
-  "RUF100",  # Remove stale noqa suppressions.
+  "B006", "B007", "B009", "B010", "B012", "B018", "B023", "B904",
+  "BLE001", "PGH003", "PGH004", "RUF006", "RUF017", "RUF100",
 ]
