@@ -206,7 +206,7 @@ class Checker(ast.NodeVisitor):
         internal_modules: tuple[str, ...],
     ) -> None:
         self.source = source
-        self.lines = source.splitlines()
+        self.lines = source.split("\n")
         self.path = path
         self.selected = selected
         self.internal_modules = internal_modules
@@ -568,7 +568,8 @@ class Checker(ast.NodeVisitor):
         for value in [*node.decorator_list, *node.bases, *node.keywords]:
             self.visit(value)
         old = self.scope
-        self.scope = self.make_scope(node, old, node.body)
+        parent = old.parent if isinstance(old.node, ast.ClassDef) else old
+        self.scope = self.make_scope(node, parent, node.body)
         for item in node.body:
             self.visit(item)
         self.scope = old
@@ -623,6 +624,7 @@ def check_source(
     internal_modules: tuple[str, ...] = (),
 ) -> list[Diagnostic]:
     """Check source without importing or executing it; positions are one-based."""
+    source = source.replace("\r\n", "\n").replace("\r", "\n")
     try:
         tree = ast.parse(source, filename=path)
     except SyntaxError as error:

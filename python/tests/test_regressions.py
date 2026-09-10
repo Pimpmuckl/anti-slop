@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from anti_slop import check_source  # noqa: E402
+from anti_slop import check_source
 
 
 class SourceAndScopeTests(unittest.TestCase):
