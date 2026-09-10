@@ -1,0 +1,19 @@
+# Companion baseline. Merge/extend your current Ruff configuration; do not replace it.
+# Formatting belongs to Ruff format or Black, not the anti-slop checker.
+[lint]
+extend-select = [
+  "B006",    # Mutable argument defaults.
+  "B007",    # Unused loop variables.
+  "B009",    # Constant-name getattr without a default.
+  "B010",    # Constant-name setattr.
+  "B012",    # Control flow in finally can hide exceptions.
+  "B018",    # Useless expressions.
+  "B023",    # Late-bound loop closures.
+  "B904",    # Preserve exception chaining.
+  "BLE001",  # Broad exceptions need deliberate boundary handling.
+  "PGH003",  # A type ignore must identify the diagnostic.
+  "PGH004",  # A noqa must identify the diagnostic.
+  "RUF006",  # Keep a reference to background asyncio tasks.
+  "RUF017",  # Avoid quadratic list summation.
+  "RUF100",  # Remove stale noqa suppressions.
+]
