@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Small, vendorable Python checks that complement Ruff and a type checker.
 
 Analysis is lexical and deliberately local. Application modules are never imported.
@@ -639,10 +638,12 @@ def check_source(
 def string_list(settings: dict[str, object], key: str) -> list[str]:
     value = settings.get(key, [])
     if not isinstance(value, list):
-        raise ValueError(f"{key} must be a list of nonempty strings")
+        raise TypeError(f"{key} must be a list of nonempty strings")
     result: list[str] = []
     for item in value:
-        if not isinstance(item, str) or not item.strip():
+        if not isinstance(item, str):
+            raise TypeError(f"{key} must be a list of nonempty strings")
+        if not item.strip():
             raise ValueError(f"{key} must be a list of nonempty strings")
         result.append(item)
     return result
@@ -651,7 +652,7 @@ def string_list(settings: dict[str, object], key: str) -> list[str]:
 def table(document: dict[str, object], key: str) -> dict[str, object]:
     value = document.get(key, {})
     if not isinstance(value, dict):
-        raise ValueError(f"{key} must be a TOML table")
+        raise TypeError(f"{key} must be a TOML table")
     return value
 
 
@@ -779,6 +780,7 @@ def main(argv: list[str] | None = None) -> int:
             )
     except (
         OSError,
+        TypeError,
         ValueError,
         UnicodeError,
         SyntaxError,

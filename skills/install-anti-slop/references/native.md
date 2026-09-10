@@ -14,7 +14,9 @@ node <skill-directory>/scripts/install-native.mjs rust
 ```
 
 An optional second argument changes the destination; defaults are
-`tools/anti-slop/python/` and `tools/anti-slop/rust/`. Existing paths are refused.
+`tools/anti-slop/python/` and `tools/anti-slop/rust/`. Existing paths and symlinked destination ancestors are refused. Use a physical
+destination path. This preflight assumes the worktree is not being maliciously
+modified concurrently.
 Preserve README, LICENSE, presets and the generated UPSTREAM.md hash record.
 
 Python requires 3.11+ and an interpreter capable of the project's syntax. Merge

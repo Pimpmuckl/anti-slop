@@ -82,3 +82,17 @@ jobs:
           name: native-formatting
           path: native-formatting.patch
           if-no-files-found: ignore
+
+  installer:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/sync-native-assets.mjs --check
+      - run: node --test scripts/install-native.test.mjs
