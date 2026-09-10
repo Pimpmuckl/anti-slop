@@ -77,8 +77,10 @@ node scripts/sync-native-assets.mjs --check
 node --test scripts/install-native.test.mjs
 ```
 
-Native CI also checks Ruff, mypy, formatting, minimum/current Rust toolchains, and
-Python runtime/platform fixtures. Never claim that a textual fixture establishes
-compiler semantics: the Rust tests actually invoke Clippy on isolated crates.
+Native CI tracks the latest stable Python 3 and Rust releases on Linux and Windows;
+older runtime versions are not part of the CI support matrix. It also checks Ruff,
+mypy, formatting, and installation on Linux, Windows, and macOS. Never claim that a
+textual fixture establishes compiler semantics: the Rust tests actually invoke
+Clippy on isolated crates.
 
 MIT licensed. Keep bundled licenses and provenance when copying files.

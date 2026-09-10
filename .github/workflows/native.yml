@@ -13,17 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {os: ubuntu-latest, python: '3.11'}
-          - {os: ubuntu-latest, python: '3.13'}
-          - {os: ubuntu-latest, python: '3.14'}
-          - {os: windows-latest, python: '3.13'}
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: '3.x'
+          check-latest: true
       - run: python -m unittest discover -s python/tests -v
       - run: python python/anti_slop.py python/anti_slop.py python/tests
 
@@ -31,16 +28,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {os: ubuntu-latest, toolchain: '1.85.0'}
-          - {os: ubuntu-latest, toolchain: stable}
-          - {os: windows-latest, toolchain: stable}
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ matrix.toolchain }}
           components: clippy,rustfmt
       - run: cargo test --manifest-path rust/Cargo.toml --locked
       - run: cargo run --manifest-path rust/Cargo.toml --locked -- --manifest-path rust/Cargo.toml --locked
@@ -51,7 +44,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.x'
+          check-latest: true
       - uses: actions/setup-node@v4
         with:
           node-version: 24
