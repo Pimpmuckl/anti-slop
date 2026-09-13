@@ -51,7 +51,7 @@ try {
   cpSync(source, target, { recursive: true, force: false, errorOnExist: true });
   const provenance = [
     "# Vendored anti-slop provenance", "",
-    "Source repository: https://github.com/Pimpmuckl/anti-slop",
+    "Source repository: https://github.com/JJLiebig/anti-slop",
     `Source directory: ${language}/`,
     "Source revision: unknown (installed skill bundle; do not infer it from the target repository HEAD).",
     "The SHA-256 values below identify the actual pristine files copied by this installation.",

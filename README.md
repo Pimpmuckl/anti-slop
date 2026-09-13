@@ -21,7 +21,7 @@ its full former README is preserved in `TYPESCRIPT.md`.
 ## Install with an agent
 
 ```sh
-npx skills add Pimpmuckl/anti-slop --skill install-anti-slop
+npx skills add JJLiebig/anti-slop --skill install-anti-slop
 ```
 
 Ask the agent to install Python, Rust, TypeScript, or the applicable combination.
